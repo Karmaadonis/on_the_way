@@ -1607,8 +1607,27 @@ public:
     }
 };
 ```
+### 2 刷 不同的子序列：一开始还是没想对，想的是判断是否是碰到了子序列t的最后一项，如果碰到了ans自加1，但是这样的话，就偏离题意了，
 
 
+
+__这题很好，值得好好体会__
+
+二刷的体会：
+__1. 一般递推方程出现dp[] = dp[]+ dp[]这种形式，初值肯定不能都为0，因为如果都为0，最后加来加去的结果还是0，此时就要思考初值问题了，一般都是某些初值要设为1__
+
+__2. 这题的状态递推很重要，具体看下面代码的解释__
+```python
+class Solution:
+    def numDistinct(self, s: str, t: str) -> int:
+        dp=[[0]*(len(t)+1) for _ in range(len(s)+1)]
+        for i in range(len(s)+1): dp[i][0]=1 # 可以理解成 s中前i项字符中含有空字符的 个数
+        for i in range(1,len(s)+1):
+            for j in range(1,len(t)+1):
+                if s[i-1]==t[j-1]:dp[i][j]=dp[i-1][j]+dp[i-1][j-1] # 重点是dp[i-1][j]的加入，代表前i-1个字符中含有t中前j个字符的个数，如果前i-1个就含有了j，那么就算第i个字符==t中第j个字符，都已经含有了，更得考虑进去
+                else: dp[i][j]=dp[i-1][j] # 不然的话，s中前i个和s中前i-1个含有t中前j个的数量肯定是一样的
+        return dp[-1][-1]
+```
 ### 不同的子序列： s中可以出现几个 不同的 子序列，都为t
 
 d[i][j]的意思是 0-i项 的s 中出现 0-j项 的个数，
@@ -1617,7 +1636,7 @@ d[i][j]的意思是 0-i项 的s 中出现 0-j项 的个数，
 
 但这是算公共长度的，比如 abcddd，abd，abcd 和 abd 的公共长度= abc ，ab 的公共长度+1，abcdd和abd的公共长度= abcd 和 ab的公共长度+1；
 
-但是在这题中，我们要的是公共子序列个数，对于abcdd 和 abd 这种情况除了 abcdd 和 abd 有一个公共子序列意外，abcdd还可以是 abdcd和 abd 组成一个，因此
+但是在这题中，我们要的是公共子序列个数，对于abcdd 和 abd 这种情况除了 abc_d 和 abd 有一个公共子序列以外，abcdd还可以是 abcd_和 abd 组成一个，因此
 
 状态转移公式应为： d[i][j]=d[i-1][j-1]+dp[i-1][j]
 
@@ -1693,7 +1712,7 @@ if (word1[i - 1] != word2[j - 1])
 删的情况前一天已经说过了，增和换怎么办，删和增一样， 
 
 比如更新dp[i][j]时，想在i索引处插入一个使其和j相等，就是=dp[i-1][j]+1.
-
+> 这里有时可能会有疑惑，在i处插入了一个，那么i位置原来的字符不就被挤到后面了，难道不会影响后面的字符判断吗—— 不会！，插入只是一个虚拟操作，并没有真正插入进去，没有改变i的位置。
 
 如果i要换，把i换成和j一样的，那么就和i==j是是一样的，dp[i][j]=dp[i-1][j-1]
 
@@ -3704,5 +3723,8 @@ public:
     }
 };
 ```
+
+```bash
 <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 <script type="text/x-mathjax-config"> MathJax.Hub.Config({ tex2jax: {inlineMath: [['$', '$']]}, messageStyle: "none" });</script>
+```
