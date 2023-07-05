@@ -1249,6 +1249,57 @@ for i in range(k):dp[0][i][0]=-prices[0]
     }
 ```
 ### 买卖股票含冷冻期 2 刷： 
+重点是想清楚，每次交易后，由于第二天无法买入，导致状态的增加。
+
+dp[i][0]: i天前的 买入收益：max(i-1天前买入，max(-prices[i] + 第[i-1]天为冷冻期的卖出收益,-prices[i] + [i-2]天前就卖出的收益))  
+dp[i][1]: i天前的 卖出收益：max(i-1天前卖出， prices[i] + [i-1]前天买入的收益) 
+
+>这时候发现，出现一个新的状态：第[i-1]天为冷冻期的卖出收益
+
+dp[i][2]: 第i天为冷冻期的卖出收益： = 第[i-1]天的卖出收益
+
+>这时候又多了一个状态: 第[i-1]天的卖出收益  
+
+dp[i][3]: 第i天的卖出收益 ： = [i-1]天前买入+prices[i]
+
+写成代码：
+```python
+dp[i][0]=max(dp[i-1][0],max(dp[i-1][2]-prices[i],dp[i-2][1]-prices[i]))
+dp[i][1]=max(dp[i-1][1],prices[i]+dp[i-1][0])
+dp[i][2]=dp[i-1][3]
+dp[i][3]=dp[i-1][0]+prices[i]
+
+# 同时注意初值： dp[0][0]=-prices[0], dp[0][1]=0,dp[0][2]=0,dp[0][3]=0
+# 但是因为出现了i-2，要处理一下 i-2=-1时的情况，第二天的时，由于前2天不可能卖出，所以此时【i-2】[1]=0
+
+```
+
+最后的代码如下：
+
+```python
+class Solution(object):
+    def maxProfit(self, prices):
+        """
+        :type prices: List[int]
+        :rtype: int
+        """
+        dp=[[0]*4 for _ in range(len(prices))]
+        dp[0][0]=-prices[0] 
+        for i in range(1,len(prices)):
+            dp[i][0]=max(dp[i-1][0],max(dp[i-1][2]-prices[i],dp[i-2][1]-prices[i] if i>1 else -prices[i]))
+            dp[i][1]=max(dp[i-1][1],prices[i]+dp[i-1][0])
+            dp[i][2]=dp[i-1][3]
+            dp[i][3]=dp[i-1][0]+prices[i]
+
+        return dp[-1][1]
+
+```
+
+__总结__: 上述代码是自己写的，也AC了，和1刷按照代码随想录写的版本有点不一样，这里解释一下，代码随想录为了处理 i-2的初值问题，选择直接将dp[i][1]的状态修改为 前i-1天卖出的收益，这样 dp[i][1]的状态更新就变成了： 
+```python
+dp[i][1]=max(dp[i-1][1],dp[i-1][3]) #前i-1 天卖出= max(前i-2天卖出了，第i-1天卖出了),
+```
+这样可以避免i-2的出现，也很巧妙。此外，二刷版本和一刷版本，dp[i][2]和dp[i][3]的定义正好相反，回顾复习的时候注意一下。
 
 
 ### 买卖股票含冷冻期：可交易无限次，卖出股票后，你无法在第二天买入股票 (即冷冻期为 1 天)
@@ -1321,9 +1372,15 @@ public:
 ```
 
 ## DP 各种最长序列问题
+## 2 刷 最长递增子序列
+设前i个数中，以0开始，j结尾(i>j)的最大递增子序列长度为dp[j],那么以i结尾的最大递增子序列长度为：
+dp[i]= max(dp[i],dp[j]+1 if nums[i]>nums[j])
 
+__注意__ :   
+1.dp各项初值应该为1，
+2. 最后的结果应该为max(dp)，因为最大长度的子串不一定是以最后一个数字为结尾的
 
-### 最长递增子序列
+### 最长递增子序列：找到数组nums中最长严格递增子序列的长度
 
 状态转移方程的思路：
 
@@ -1339,6 +1396,20 @@ class Solution:
                 if nums[j]<nums[i]:
                     dp[i]=max(dp[i],dp[j]+1) 
             result=max(result,dp[i])# 结果应该求所以最大
+        return result
+```
+
+
+### 2 刷 最长连续递增序列：
+因为是连续的，dp[i]只能由前dp[i-1]更新而来
+dp[i]=dp[i-1]+1 if nums[i]> nums[j] 
+
+```python
+        result=1
+        dp=[1]*len(nums)
+        for i in range(1,len(nums)):
+            dp[i]=dp[i-1]+1 if nums[i]>nums[i-1] else dp[i]
+            result=max(result,dp[i])
         return result
 ```
 ### 最长连续递增序列: 在最长递增的基础上要求必须是连续的序列
@@ -1357,6 +1428,13 @@ class Solution:
             result=max(result,dp[i])# 结果应该求所以最大
         return result
 ```
+### 2 刷最长重复子序列：重复子序列和公共子序列的区别是 前者连续，后者可以不连续
+
+__注意__:
+1. dp[i][j]的含义在重复子序列，即允许连续时代表，以i，j结尾的两个字符串的重复长度，在公共子序列中代表i，j前的字符串的重复长度。
+2. 初始化融入到for循环中的技巧：dp向后移动一个位置，然后全部初始化为0 ，两个for都从1开始遍历到最后。
+
+3. 公共序列只比重复序列多了一个状态，即两个字符串末尾不相同时，公共长度要取 包含i不包含j，包含j不包含i两种情况中最长的那个，因为包含i，i可能会和j之前的相同，反之同理，所以要考虑这种情况。
 
 ### 最长重复子序列: 子序列默认连续（两个数组，那么就需要dp[i][j]）
 
@@ -1370,12 +1448,12 @@ class Solution:
 
 __注意，这里因为要连续，所以i，j要代表以i，j结尾的两个子序列。__
 
-for j in 
+for j in ：
 dp[0][j]= 1 if nums2[j]==nums1[0] else 0
 
-for i in
-dp[i][0]= 1 if nums1[0]==nums2[j] else 0
-还要两个for 循环，好麻烦。
+for i in ：
+dp[i][0]= 1 if nums1[i]==nums2[0] else 0
+
 ```python
 class Solution:
     def findLength(self, nums1: List[int], nums2: List[int]) -> int:
@@ -1397,7 +1475,7 @@ class Solution:
                 result=max(result,dp[i][j])
         return result
 ```
-
+还要两个for 循环，好麻烦。
 想办法融进状态更新的for循环。
 ```
 dp[0][j]= 1 if nums2[j]==nums1[0] else 0
@@ -1409,9 +1487,7 @@ dp[i][0]= 1 if nums1[0]==nums2[j] else 0
 ```
 dp[0][j]= 1 if nums1[0]==nums2[j]
 ```
-``` 1  ```  看看能不能写成 
-
-```dp[i][j]=dp[i-1][j-1]+1``` 这种形式。
+``` 1  ```  看看能不能写成 ```dp[i][j]=dp[i-1][j-1]+1``` 这种形式。
 
 dp[0][j]就是 i=0 的时候 j 从 0遍历到j，在状态转移中就是，```dp[0][j]=dp[0-1][j-1]+1``` ，和 ```dp[0][j]= 1 ```就差一个```dp[0-1][j-1]```,只要让```dp[0-1][j-1]=0```就可以了，因为dp全初始化为0了，所以除了```dp[-1][-1]```以外，正好都是0。
 
@@ -3109,7 +3185,23 @@ public:
 };
 ```
 
-### 二叉树最小深度：根节点不算叶子节点，所以输出时要特判
+## 二叉树最小深度：根节点不算叶子节点，所以输出时要特判
+
+### 递归解法：三刷时自己写的
+```python
+def minDepth(self, root):
+        """
+        :type root: TreeNode
+        :rtype: int
+        """
+        if not root: return 0
+        l= self.minDepth(root.left)
+        r= self.minDepth(root.right)
+        if l==0 and r==0 : return 1
+        return min(l if l !=0 else float('inf'),r if r != 0 else float('inf'))+1 
+```
+
+### 一刷解法：更好，更简洁
 ```c++
         if(!root) return 0;
         
@@ -3134,19 +3226,7 @@ class Solution:
             return a.val==b.val and recursive(a.left,b.right) and recursive(a.right,b.left)
         return recursive(root.left,root.right)
 ```
-### 递归解法：三刷时自己写的
-```python
-def minDepth(self, root):
-        """
-        :type root: TreeNode
-        :rtype: int
-        """
-        if not root: return 0
-        l= self.minDepth(root.left)
-        r= self.minDepth(root.right)
-        if l==0 and r==0 : return 1
-        return min(l if l !=0 else float('inf'),r if r != 0 else float('inf'))+1 
-```
+
 ## 翻转二叉树
 
 ```python
